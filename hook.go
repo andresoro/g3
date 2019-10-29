@@ -8,19 +8,20 @@ import (
 )
 
 // WebHook listens for Github repo updates
-func WebHook(w http.ResponseWriter, r *http.Request) {
+func WebHook(collector chan *GitPayload) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		body := &GitPayload{}
+		err := json.NewDecoder(r.Body).Decode(body)
+		if err != nil {
+			log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 
-	body := &GitPayload{}
-	err := json.NewDecoder(r.Body).Decode(body)
-	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		collector <- body
+
+		w.WriteHeader(http.StatusOK)
 	}
-
-	download(body)
-
-	w.WriteHeader(http.StatusOK)
 }
 
 // GitPayload is what github sends over webhook on repo pushes
